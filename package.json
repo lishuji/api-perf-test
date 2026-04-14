@@ -1,14 +1,15 @@
 {
   "name": "api-perf-test",
-  "version": "1.0.0",
-  "description": "Cloud Studio API 性能测试",
+  "version": "2.0.0",
+  "description": "通用 API 性能回归测试工具 —— 基于 k6，配置驱动，开箱即用",
   "scripts": {
-    "test": "k6 run test/stress.js",
-    "test:export": "k6 run --summary-export=results/result.json test/stress.js",
     "test:smoke": "k6 run test/smoke.js",
+    "test:stress": "k6 run test/stress.js",
+    "test:soak": "k6 run test/soak.js",
+    "test:export": "k6 run --summary-export=results/result.json test/stress.js",
     "compare": "node scripts/compare.js"
   },
-  "keywords": ["k6", "performance", "load-testing"],
-  "license": "UNLICENSED",
-  "private": true
+  "keywords": ["k6", "performance", "load-testing", "api", "regression", "benchmark"],
+  "license": "MIT",
+  "private": false
 }
