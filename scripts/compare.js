@@ -44,7 +44,7 @@ function extract(data) {
   const metrics = data.metrics;
 
   // 优先使用自定义 Trend（api_duration），否则使用 http_req_duration
-  const dur = metrics.api_duration || metrics.hot_search_duration || metrics.http_req_duration;
+  const dur = metrics.api_duration || metrics.http_req_duration;
   if (!dur) {
     console.error('❌ 结果文件中找不到延迟指标（api_duration / http_req_duration）');
     process.exit(1);

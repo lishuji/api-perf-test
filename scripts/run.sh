@@ -12,8 +12,8 @@
 #
 # 示例:
 #   ./scripts/run.sh smoke
-#   ./scripts/run.sh stress config/examples/cloud-studio-hot-ranking.env
-#   ./scripts/run.sh stress config/examples/cloud-studio-hot-ranking.env --summary-export=results/before.json
+#   ./scripts/run.sh stress config/my-api.env
+#   ./scripts/run.sh stress config/my-api.env --summary-export=results/before.json
 # ==============================================================
 
 set -euo pipefail
@@ -52,7 +52,7 @@ if [ -z "$TEST_TYPE" ]; then
     echo ""
     echo "示例:"
     echo "  $0 smoke"
-    echo "  $0 stress config/examples/cloud-studio-hot-ranking.env"
+    echo "  $0 stress config/my-api.env"
     echo "  $0 stress my-api.env --summary-export=results/before.json"
     exit 0
 fi

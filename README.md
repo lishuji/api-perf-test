@@ -25,7 +25,6 @@ api-perf-test/
 ├── config/                    # 接口配置目录
 │   ├── example.env            # 配置文件模板
 │   └── examples/              # 示例配置
-│       ├── cloud-studio-hot-ranking.env
 │       └── post-api.env
 ├── lib/                       # 通用模块（k6 脚本共享）
 │   ├── config.js              # 配置解析
