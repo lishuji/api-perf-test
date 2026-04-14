@@ -1,0 +1,14 @@
+{
+  "name": "api-perf-test",
+  "version": "1.0.0",
+  "description": "Cloud Studio API 性能测试",
+  "scripts": {
+    "test": "k6 run -e BASE_URL=https://cloudstudio.net test/stress.js",
+    "test:export": "k6 run -e BASE_URL=https://cloudstudio.net --summary-export=results/result.json test/stress.js",
+    "test:smoke": "k6 run -e BASE_URL=https://cloudstudio.net test/smoke.js",
+    "compare": "node scripts/compare.js"
+  },
+  "keywords": ["k6", "performance", "load-testing"],
+  "license": "UNLICENSED",
+  "private": true
+}
