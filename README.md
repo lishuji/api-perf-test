@@ -2,18 +2,19 @@
 
 基于 [k6](https://k6.io/) 的**配置驱动**性能测试框架，支持团队任意 HTTP 接口的**冒烟测试、压力测试、持久测试与性能回归对比**。
 
-> 🎯 核心理念：**零代码测试新接口** —— 只需写一个 `.env` 配置文件，即可复用全部测试能力。
+> 🎯 核心理念：**零代码测试新接口** —— 只需在 JSON 配置文件中添加一个接口定义，即可复用全部测试能力。
 
 ---
 
 ## ✨ 特性
 
-- 🔧 **配置驱动** — 新增接口只需添加 `.env` 配置，无需写测试代码
+- 🔧 **配置驱动** — 一个 JSON 文件管理所有接口，新增接口无需写测试代码
+- 📦 **多接口管理** — 一个配置文件集中定义多个接口，全局配置自动继承
 - 🚀 **三种测试模式** — 冒烟（15s）、压力（1.5min）、持久（10min+）
 - 📊 **性能对比报告** — 自动对比优化前后，输出可视化报告
 - 🔐 **认证支持** — Bearer Token / Cookie / 自定义 Headers
 - 📦 **多请求方法** — GET / POST / PUT / PATCH / DELETE
-- ⚙️ **灵活的阈值** — p95、p99、错误率均可自定义
+- ⚙️ **灵活的阈值** — p95、p99、错误率均可按接口独立配置
 - 🏗️ **CI/CD 友好** — 阈值不达标自动失败，适合流水线集成
 
 ---
@@ -23,11 +24,12 @@
 ```
 api-perf-test/
 ├── config/                    # 接口配置目录
-│   ├── example.env            # 配置文件模板
+│   ├── example.json           # JSON 配置文件模板（推荐）
+│   ├── example.env            # .env 配置文件模板（兼容）
 │   └── examples/              # 示例配置
 │       └── post-api.env
 ├── lib/                       # 通用模块（k6 脚本共享）
-│   ├── config.js              # 配置解析
+│   ├── config.js              # 配置解析（支持 JSON + 环境变量双模式）
 │   └── request.js             # 请求执行 & 指标采集
 ├── test/                      # 测试脚本
 │   ├── smoke.js               # 冒烟测试（~15s）
@@ -66,66 +68,96 @@ choco install k6
 docker pull grafana/k6
 ```
 
-### 安装 Node.js（仅对比脚本需要）
+### 安装 Node.js（仅对比脚本和 list 命令需要）
 
-对比脚本 `scripts/compare.js` 需要 Node.js 运行环境。k6 测试脚本本身**不需要** Node.js。
+对比脚本 `scripts/compare.js` 和 `list` 命令需要 Node.js 运行环境。k6 测试脚本本身**不需要** Node.js。
 
 ---
 
 ## 🚀 快速开始
 
-### 方式一：直接用命令行参数
+### 方式一：JSON 配置文件（推荐）
+
+**1. 创建你的 API 配置文件：**
 
 ```bash
-# 冒烟测试（~15s）
-k6 run -e BASE_URL=https://api.example.com -e API_PATH=/api/v1/users test/smoke.js
-
-# 压力测试（~1.5min）
-k6 run -e BASE_URL=https://api.example.com -e API_PATH=/api/v1/users test/stress.js
-
-# POST 接口
-k6 run \
-  -e BASE_URL=https://api.example.com \
-  -e API_PATH=/api/v1/search \
-  -e METHOD=POST \
-  -e 'BODY={"keyword":"test"}' \
-  test/stress.js
+cp config/example.json config/my-apis.json
 ```
 
-### 方式二：使用配置文件（推荐）
+**2. 编辑配置，定义全局设置和接口列表：**
 
-**1. 复制模板并填写配置：**
+```json
+{
+  "global": {
+    "baseUrl": "https://api.example.com",
+    "token": "your-jwt-token",
+    "thresholds": { "p95": 500, "p99": 1000, "errorRate": 1 }
+  },
+  "apis": {
+    "user-list": {
+      "name": "用户列表",
+      "path": "/api/v1/users",
+      "method": "GET",
+      "query": { "page": 1, "size": 20 },
+      "checkField": "data.list"
+    },
+    "user-search": {
+      "name": "用户搜索",
+      "path": "/api/v1/users/search",
+      "method": "POST",
+      "body": { "keyword": "test" },
+      "thresholds": { "p95": 300 }
+    }
+  }
+}
+```
+
+**3. 查看可用接口：**
+
+```bash
+./scripts/run.sh list config/my-apis.json
+```
+
+输出：
+
+```
+📋 可用接口列表  (config/my-apis.json)
+
+  ID                   方法    路径                          名称
+  ─────────────────────────────────────────────────────────────────────────
+  user-list            GET     /api/v1/users                 用户列表
+  user-search          POST    /api/v1/users/search          用户搜索
+```
+
+**4. 运行测试：**
+
+```bash
+# 冒烟测试
+./scripts/run.sh smoke config/my-apis.json user-list
+
+# 压力测试
+./scripts/run.sh stress config/my-apis.json user-search
+
+# 压力测试 + 导出结果
+./scripts/run.sh stress config/my-apis.json user-list --summary-export=results/before.json
+```
+
+### 方式二：直接用 k6 命令
+
+```bash
+# JSON 配置
+k6 run -e CONFIG_FILE=config/my-apis.json -e API_ID=user-list test/smoke.js
+
+# 环境变量直传
+k6 run -e BASE_URL=https://api.example.com -e API_PATH=/api/v1/users test/smoke.js
+```
+
+### 方式三：.env 配置文件（兼容旧方式）
 
 ```bash
 cp config/example.env config/my-api.env
-# 编辑 config/my-api.env，填入你的接口信息
-```
-
-**2. 使用运行脚本：**
-
-```bash
-# 给脚本加执行权限（首次）
-chmod +x scripts/run.sh
-
-# 冒烟测试
-./scripts/run.sh smoke config/my-api.env
-
-# 压力测试
+# 编辑 config/my-api.env
 ./scripts/run.sh stress config/my-api.env
-
-# 压力测试 + 导出结果
-./scripts/run.sh stress config/my-api.env --summary-export=results/before.json
-```
-
-### 方式三：环境变量导出
-
-```bash
-export BASE_URL=https://api.example.com
-export API_PATH=/api/v1/users
-export API_NAME="用户列表接口"
-export TOKEN=your-jwt-token
-
-k6 run test/smoke.js
 ```
 
 ---
@@ -134,15 +166,15 @@ k6 run test/smoke.js
 
 ```bash
 # 第 1 步：优化前，跑基准测试
-./scripts/run.sh stress config/my-api.env --summary-export=results/before.json
+./scripts/run.sh stress config/my-apis.json user-list --summary-export=results/before.json
 
 # 第 2 步：部署优化代码...
 
 # 第 3 步：优化后，跑对比测试
-./scripts/run.sh stress config/my-api.env --summary-export=results/after.json
+./scripts/run.sh stress config/my-apis.json user-list --summary-export=results/after.json
 
 # 第 4 步：生成对比报告
-API_NAME="我的接口" node scripts/compare.js
+API_NAME="用户列表" node scripts/compare.js
 
 # 也可以指定任意两个结果文件对比
 node scripts/compare.js results/v1.json results/v2.json
@@ -173,49 +205,89 @@ node scripts/compare.js results/v1.json results/v2.json
 
 ---
 
-## ⚙️ 配置参数说明
+## ⚙️ JSON 配置文件说明
 
-### 接口配置
+### 配置结构
+
+```json
+{
+  "global": { ... },    // 全局配置（所有接口共享）
+  "apis": {             // 接口定义（按 ID 索引）
+    "api-id": { ... }
+  }
+}
+```
+
+### global 全局配置
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `baseUrl` | string | `http://localhost:8080` | 服务基础地址 |
+| `headers` | object | `{"Content-Type":"application/json"}` | 全局请求头 |
+| `token` | string | 空 | Bearer Token |
+| `cookie` | string | 空 | Cookie |
+| `expectedStatus` | number | `200` | 期望状态码 |
+| `thresholds.p95` | number | `500` | p95 上限（ms） |
+| `thresholds.p99` | number | `1000` | p99 上限（ms） |
+| `thresholds.errorRate` | number | `1` | 错误率上限（%） |
+
+### apis 接口定义
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `name` | string | 否 | 接口名称（报告展示用） |
+| `path` | string | **是** | 接口路径 |
+| `method` | string | 否 | 请求方法（默认 GET） |
+| `query` | object | 否 | URL Query 参数 |
+| `body` | object | 否 | 请求体（POST/PUT） |
+| `headers` | object | 否 | 自定义请求头（与 global 合并） |
+| `token` | string | 否 | 覆盖全局 Token |
+| `cookie` | string | 否 | 覆盖全局 Cookie |
+| `expectedStatus` | number | 否 | 覆盖全局期望状态码 |
+| `checkField` | string | 否 | 响应非空校验字段路径 |
+| `thresholds` | object | 否 | 覆盖全局阈值（部分覆盖） |
+
+### 配置继承规则
+
+接口配置会**继承并覆盖**全局配置：
+
+```json
+{
+  "global": {
+    "baseUrl": "https://api.example.com",
+    "thresholds": { "p95": 500, "p99": 1000, "errorRate": 1 }
+  },
+  "apis": {
+    "fast-api": {
+      "path": "/api/fast",
+      "thresholds": { "p95": 100 }
+    }
+  }
+}
+```
+
+`fast-api` 的最终阈值为 `{ p95: 100, p99: 1000, errorRate: 1 }` — p95 被覆盖，p99 和 errorRate 继承自 global。
+
+---
+
+## ⚙️ 环境变量参数（.env 模式 / 命令行覆盖）
+
+环境变量可以覆盖 JSON 配置文件中的值，优先级最高。
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `API_NAME` | `未命名接口` | 接口名称，用于报告展示 |
-| `BASE_URL` | `http://localhost:8080` | 目标服务基础地址 |
-| `API_PATH` | `/` | 接口路径 |
-| `METHOD` | `GET` | 请求方法：GET/POST/PUT/PATCH/DELETE |
-
-### 请求参数
-
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `QUERY_PARAMS` | `{}` | URL Query 参数（JSON 格式） |
-| `BODY` | 空 | 请求体（JSON 字符串，POST/PUT 有效） |
-| `CUSTOM_HEADERS` | `{}` | 自定义请求头（JSON 格式） |
-
-### 认证
-
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `TOKEN` | 空 | Bearer Token |
-| `COOKIE` | 空 | Cookie 字符串 |
-
-### 校验 & 阈值
-
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `EXPECTED_STATUS` | `200` | 期望 HTTP 状态码 |
-| `CHECK_FIELD` | 空 | 响应 JSON 非空校验字段路径 |
-| `THRESHOLD_P95` | `500` | p95 响应时间上限（ms） |
-| `THRESHOLD_P99` | `1000` | p99 响应时间上限（ms） |
-| `THRESHOLD_ERROR_RATE` | `1` | 最大错误率（%） |
-
-### 测试模式特有参数
-
-| 参数 | 适用测试 | 说明 |
-|------|----------|------|
-| `STAGES` | stress | 自定义并发阶段（JSON 数组） |
-| `SOAK_DURATION` | soak | 持续负载时长，默认 `10m` |
-| `SOAK_VUS` | soak | 持续并发数，默认 `30` |
+| `CONFIG_FILE` | 空 | JSON 配置文件路径 |
+| `API_ID` | 空 | 接口 ID（JSON 模式必填） |
+| `BASE_URL` | `http://localhost:8080` | 覆盖 baseUrl |
+| `API_PATH` | `/` | 覆盖接口路径 |
+| `METHOD` | `GET` | 覆盖请求方法 |
+| `TOKEN` | 空 | 覆盖 Token |
+| `THRESHOLD_P95` | `500` | 覆盖 p95 阈值 |
+| `THRESHOLD_P99` | `1000` | 覆盖 p99 阈值 |
+| `THRESHOLD_ERROR_RATE` | `1` | 覆盖错误率阈值 |
+| `STAGES` | 默认四阶段 | 自定义压力测试并发阶段（JSON） |
+| `SOAK_DURATION` | `10m` | 持久测试时长 |
+| `SOAK_VUS` | `30` | 持久测试并发数 |
 
 ---
 
@@ -254,10 +326,10 @@ k6 run -e 'STAGES=[{"duration":"10s","target":200},{"duration":"30s","target":50
 
 ```bash
 # 默认 30 并发跑 10 分钟
-k6 run -e BASE_URL=https://api.example.com test/soak.js
+./scripts/run.sh soak config/my-apis.json user-list
 
 # 自定义: 50 并发跑 30 分钟
-k6 run -e SOAK_VUS=50 -e SOAK_DURATION=30m test/soak.js
+k6 run -e CONFIG_FILE=config/my-apis.json -e API_ID=user-list -e SOAK_VUS=50 -e SOAK_DURATION=30m test/soak.js
 ```
 
 ---
@@ -276,11 +348,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: grafana/setup-k6-action@v1
-      - name: Run smoke test
+      - name: Smoke test - user list
         run: |
           k6 run \
+            -e CONFIG_FILE=config/apis.json \
+            -e API_ID=user-list \
             -e BASE_URL=${{ secrets.API_BASE_URL }} \
-            -e API_PATH=/api/v1/health \
+            -e TOKEN=${{ secrets.API_TOKEN }} \
+            test/smoke.js
+      - name: Smoke test - user search
+        run: |
+          k6 run \
+            -e CONFIG_FILE=config/apis.json \
+            -e API_ID=user-search \
+            -e BASE_URL=${{ secrets.API_BASE_URL }} \
             -e TOKEN=${{ secrets.API_TOKEN }} \
             test/smoke.js
 ```
@@ -290,7 +371,8 @@ jobs:
 ```yaml
 - name: Performance regression check
   run: |
-    k6 run -e BASE_URL=$API_URL --summary-export=results/current.json test/stress.js
+    k6 run -e CONFIG_FILE=config/apis.json -e API_ID=user-list \
+      --summary-export=results/current.json test/stress.js
     node scripts/compare.js results/baseline.json results/current.json
 ```
 
@@ -298,18 +380,29 @@ jobs:
 
 ## 📋 为团队新接口添加测试
 
-**只需 3 步：**
+**只需 2 步：**
 
-1. **复制配置模板**
-   ```bash
-   cp config/example.env config/my-new-api.env
+1. **在 JSON 配置文件中添加接口定义**
+
+   ```json
+   {
+     "apis": {
+       "existing-api": { ... },
+       "my-new-api": {
+         "name": "我的新接口",
+         "path": "/api/v2/something",
+         "method": "POST",
+         "body": { "key": "value" },
+         "checkField": "data"
+       }
+     }
+   }
    ```
 
-2. **编辑配置文件**，填入接口地址、参数、认证信息
+2. **运行测试**
 
-3. **运行测试**
    ```bash
-   ./scripts/run.sh stress config/my-new-api.env
+   ./scripts/run.sh stress config/my-apis.json my-new-api
    ```
 
 **无需写任何 k6 代码！**
@@ -320,9 +413,9 @@ jobs:
 
 | 命令 | 说明 |
 |------|------|
-| `npm run test:smoke` | 冒烟测试 |
-| `npm run test:stress` | 压力测试 |
-| `npm run test:soak` | 持久测试 |
+| `npm run test:smoke` | 冒烟测试（需设置环境变量） |
+| `npm run test:stress` | 压力测试（需设置环境变量） |
+| `npm run test:soak` | 持久测试（需设置环境变量） |
 | `npm run test:export` | 压力测试 + 导出结果 |
 | `npm run compare` | 对比 before.json vs after.json |
 

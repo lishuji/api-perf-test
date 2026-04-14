@@ -4,18 +4,26 @@
  * 用途：中等负载长时间运行，发现内存泄漏、连接池耗尽等问题
  * 默认运行约 10 分钟，可通过 SOAK_DURATION 环境变量自定义
  *
- * 用法：k6 run -e BASE_URL=https://your-host.com -e API_PATH=/api/xxx test/soak.js
- *       k6 run -e SOAK_DURATION=30m test/soak.js   # 跑 30 分钟
+ * 用法：
+ *   # JSON 配置（推荐）
+ *   k6 run -e CONFIG_FILE=config/my-apis.json -e API_ID=user-list test/soak.js
+ *
+ *   # 环境变量（兼容旧方式）
+ *   k6 run -e BASE_URL=https://your-host.com -e API_PATH=/api/xxx test/soak.js
+ *   k6 run -e SOAK_DURATION=30m test/soak.js   # 跑 30 分钟
  */
 import { sleep } from 'k6';
 import { Trend, Rate } from 'k6/metrics';
 import { loadConfig } from '../lib/config.js';
 import { executeRequest } from '../lib/request.js';
 
-// ============ 读取配置 ============
-const config = loadConfig(__ENV);
+// ============ 加载配置文件 ============
+const configContent = __ENV.CONFIG_FILE ? open(__ENV.CONFIG_FILE) : null;
+const config = loadConfig(__ENV, configContent);
 const soakDuration = __ENV.SOAK_DURATION || '10m';
 const soakVUs = parseInt(__ENV.SOAK_VUS || '30', 10);
+
+console.log(`📌 测试接口: ${config.apiName} [${config.method}] ${config.baseUrl}${config.apiPath}`);
 
 // ============ 自定义指标 ============
 const latency = new Trend('api_duration');
