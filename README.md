@@ -92,6 +92,6 @@ npm run compare
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `BASE_URL` | `https://cloudstudio.net` | 目标服务地址 |
+| `BASE_URL` | `http://localhost:8080` | 目标服务地址 |
 | `TIMESTAMP` | 当前时间戳 | 热门排行榜快照时间戳 |
 | `TOKEN` | 空 | JWT 登录态（可选） |

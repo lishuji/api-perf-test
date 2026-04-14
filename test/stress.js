@@ -7,7 +7,7 @@ const hotLatency = new Trend('hot_search_duration');
 const errorRate = new Rate('errors');
 
 // ============ 环境变量 ============
-const BASE_URL = __ENV.BASE_URL || 'https://cloudstudio.net';
+const BASE_URL = __ENV.BASE_URL || 'http://localhost:8080';
 const TIMESTAMP = __ENV.TIMESTAMP || Math.floor(Date.now() / 1000);
 const TOKEN = __ENV.TOKEN || '';
 
