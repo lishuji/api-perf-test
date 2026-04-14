@@ -14,11 +14,7 @@
 # 示例:
 #   ./scripts/run.sh list config/my-apis.json
 #   ./scripts/run.sh smoke config/my-apis.json user-list
-#   ./scripts/run.sh stress config/my-apis.json user-search
 #   ./scripts/run.sh stress config/my-apis.json user-list --summary-export=results/before.json
-#
-# 兼容 .env 模式（不传 api_id）:
-#   ./scripts/run.sh stress config/my-api.env
 # ==============================================================
 
 set -euo pipefail
@@ -44,7 +40,7 @@ fi
 show_help() {
     echo -e "${BOLD}📊 API 性能测试工具${NC}"
     echo ""
-    echo "用法: $0 <command> [options...]"
+    echo "用法: $0 <command> <config.json> <api_id> [k6_args...]"
     echo ""
     echo -e "${CYAN}命令:${NC}"
     echo "  list   <config.json>                     列出配置中所有可用接口"
@@ -55,11 +51,7 @@ show_help() {
     echo -e "${CYAN}示例:${NC}"
     echo "  $0 list config/my-apis.json"
     echo "  $0 smoke config/my-apis.json user-list"
-    echo "  $0 stress config/my-apis.json user-search"
     echo "  $0 stress config/my-apis.json user-list --summary-export=results/before.json"
-    echo ""
-    echo -e "${CYAN}兼容 .env 模式:${NC}"
-    echo "  $0 stress config/my-api.env"
 }
 
 # ─────────────── 列出接口 ───────────────

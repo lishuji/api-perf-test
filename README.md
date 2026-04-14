@@ -192,9 +192,7 @@ jobs:
 ```
 api-perf-test/
 ├── config/                         # 接口配置
-│   ├── example.json                #   JSON 模板（推荐）
-│   ├── example.env                 #   .env 模板（兼容）
-│   └── examples/                   #   更多示例
+│   └── example.json                #   配置模板
 ├── lib/                            # 通用模块
 │   ├── config.js                   #   配置解析
 │   └── request.js                  #   请求执行 & 指标采集

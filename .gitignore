@@ -2,9 +2,6 @@ node_modules/
 results/*.json
 !results/.gitkeep
 
-# 用户自定义配置（模板和示例除外）
-config/*.env
+# 用户自定义配置（模板除外）
 config/*.json
-!config/example.env
 !config/example.json
-!config/examples/

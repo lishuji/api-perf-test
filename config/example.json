@@ -1,20 +1,7 @@
 {
-  "$schema": "./schema.json",
-  "_comment": "API 性能测试配置文件 —— 支持全局配置 + 多接口定义",
-
   "global": {
     "baseUrl": "http://localhost:8080",
-    "headers": {
-      "Content-Type": "application/json"
-    },
-    "token": "",
-    "cookie": "",
-    "thresholds": {
-      "p95": 500,
-      "p99": 1000,
-      "errorRate": 1
-    },
-    "expectedStatus": 200
+    "thresholds": { "p95": 500, "p99": 1000, "errorRate": 1 }
   },
 
   "apis": {
@@ -30,39 +17,9 @@
       "name": "用户搜索",
       "path": "/api/v1/users/search",
       "method": "POST",
-      "body": {
-        "keyword": "test",
-        "page": 1,
-        "pageSize": 20
-      },
-      "headers": {
-        "X-Request-Source": "perf-test"
-      },
+      "body": { "keyword": "test", "page": 1, "pageSize": 20 },
       "checkField": "data.list",
-      "thresholds": {
-        "p95": 300,
-        "p99": 800
-      }
-    },
-
-    "user-detail": {
-      "name": "用户详情",
-      "path": "/api/v1/users/123",
-      "method": "GET",
-      "checkField": "data",
-      "thresholds": {
-        "p95": 200
-      }
-    },
-
-    "health-check": {
-      "name": "健康检查",
-      "path": "/api/health",
-      "method": "GET",
-      "thresholds": {
-        "p95": 100,
-        "p99": 200
-      }
+      "thresholds": { "p95": 300 }
     }
   }
 }
